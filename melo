@@ -1,0 +1,116 @@
+#include <iostream>
+#include <fstream>
+#include <cstring> 
+#include <string>
+using namespace std;
+
+const char* preprocessorDirectives[] = {"include","define","undef", "if", "ifdef", "ifndef","else", "elif","endif","line","error","pragma"};
+const char* existingLibraries[] = {"iostream", "fstream", "sstream","vector","list", "deque", "array", "set", "map","unordered_set", "unordered_map", "stack", "queue", "bitset","algorithm", "numeric","iterator","string", "cstring","utility", "functional", "tuple","memory","chrono", "ctime","random","type_traits","exception", "stdexcept","thread", "mutex", "future","filesystem","cstddef", "cstdint", "climits", "cfloat", "cmath", "cstdlib","Boost.Asio", "Boost.Filesystem", "Boost.Regex", "Boost.Thread","Eigen", "Qt", "POCO", "OpenCV", "PCL", "wxWidgets","TBB", "Cereal", "GLM", "SDL", "SFML", "Google Test", "Catch2", "fmt"};
+const char* keywords[] = {"alignas", "alignof", "and", "and_eq", "asm", "atomic_cancel","atomic_commit", "atomic_noexcept", "auto", "bitand", "bitor", "bool","break", "case", "catch", "char", "char8_t", "char16_t", "char32_t","class", "compl", "concept", "const", "consteval", "constexpr","constinit", "const_cast", "continue", "co_await", "co_return", "co_yield","decltype", "default", "delete", "do", "double", "dynamic_cast", "else","enum", "explicit", "export", "extern", "false", "float", "for", "friend","goto", "if", "inline", "int", "long", "mutable", "namespace", "new","noexcept", "not", "not_eq", "nullptr", "operator", "or", "or_eq","private", "protected", "public", "reinterpret_cast", "requires","return", "short", "signed", "sizeof", "static", "static_assert","static_cast", "struct", "switch", "synchronized", "template", "this","thread_local", "throw", "true", "try", "typedef", "typeid", "typename","union", "unsigned", "using", "virtual", "void", "volatile", "wchar_t","while", "xor", "xor_eq","asm","size_t"};
+
+// this function if for to determine is the line contain any preprocessor keyword or not
+bool isPreprocessorKeyword(const char *ptr){
+    // i am taking a const pointer char array to save the pre processor directives  
+    
+    // calculating tha size of preprocessorDirectives[]
+    int arraySize = sizeof(preprocessorDirectives) / sizeof(preprocessorDirectives[0]);
+    // using the loop checking one by one words include, define .... 
+    for (int i = 0; i < arraySize; ++i) {
+        // checking if the word is present in the line or not
+        // strnsmp This function compares the two strings lexicographically
+        // strncmp(const char *string-1,const char *string-2, length of the strings))
+        if (strncmp(ptr, preprocessorDirectives[i], strlen(preprocessorDirectives[i])) == 0) {
+            // if match then jumps the word and point the end of the word
+            ptr += strlen(preprocessorDirectives[i]);
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool isExistingLibrary(const char* libraryName, const char* existingLibraries[], size_t numLibraries) {
+    for (size_t i = 0; i < numLibraries; ++i) {
+        if (std::strcmp(libraryName, existingLibraries[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool isCPlusPlusKeyword(const char* word, const char* keywords[], size_t numKeywords) {
+    for (size_t i = 0; i < numKeywords; ++i) {
+        if (std::strcmp(word, keywords[i]) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+int main()
+{
+    int keywordCount = 0;
+    int libraryCount = 0;
+    size_t numKeywords = sizeof(keywords) / sizeof(keywords[0]);
+    string filePath = "Input.txt";
+    ifstream file(filePath);
+
+    if (!file.is_open()){
+        cerr << "Failed to open the file." << endl;
+        return 1;
+    }
+
+    string line;
+    while (getline(file, line)){
+        const char *charArray = line.c_str();
+        for (size_t i = 0; i < line.length(); ++i){
+            cout << charArray[i] << " ";
+        }
+        cout << endl;
+        const char *ptr = charArray;
+        while (*ptr != '\0'){
+            if (*ptr == '#'){
+                while (*(++ptr) == ' ') {}
+
+                if (isPreprocessorKeyword(ptr)) {
+                    ++keywordCount;
+                }
+            }
+            else if (*ptr == '<')
+            {
+                const char *endBracket = strchr(ptr, '>');
+                if (endBracket){
+                    size_t numLibraries = sizeof(existingLibraries) / sizeof(existingLibraries[0]);
+                    string libraryName(ptr + 1, endBracket - ptr - 1);
+                    if (isExistingLibrary(libraryName.c_str(), existingLibraries, numLibraries)) {
+                    ++libraryCount;
+                }
+                ptr = endBracket + 1; 
+                }
+                else{
+                    ++ptr;
+                }
+            }
+            else{
+            const char* endWord = std::strchr(ptr, ' ');
+            if (endWord) {
+                std::string word(ptr, endWord - ptr);
+                if (isCPlusPlusKeyword(word.c_str(), keywords, numKeywords)) {
+                    ++keywordCount;
+                }
+                ptr = endWord + 1;
+            } else {
+                ++ptr;
+            }
+            }
+        }
+    }
+
+    cout << "\nKeyword count: " << keywordCount << std::endl;
+    cout << "Library count: " << libraryCount << std::endl;
+    file.close();
+
+    return 0;
+}
